@@ -1827,18 +1827,32 @@
                 }, 3500);
             }
             
-            navigator.clipboard.writeText(iframeCode).then(function() {
-                onCopied();
-            }).catch(function() {
+            function fallbackCopy() {
                 var ta = document.createElement('textarea');
                 ta.value = iframeCode;
-                ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+                ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;width:1px;height:1px;';
                 document.body.appendChild(ta);
-                ta.focus(); ta.select();
-                try { document.execCommand('copy'); onCopied(); }
-                catch(e) { alert('❌ Не удалось скопировать автоматически. Нажмите Ctrl+C.'); }
+                ta.focus();
+                ta.select();
+                try {
+                    var ok = document.execCommand('copy');
+                    if (ok) { onCopied(); }
+                    else { alert('❌ Не удалось скопировать. Нажмите Ctrl+C в поле ниже.'); }
+                } catch(e) {
+                    alert('❌ Не удалось скопировать автоматически. Нажмите Ctrl+C.');
+                }
                 document.body.removeChild(ta);
-            });
+            }
+            
+            try {
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                    navigator.clipboard.writeText(iframeCode).then(onCopied).catch(fallbackCopy);
+                } else {
+                    fallbackCopy();
+                }
+            } catch(e) {
+                fallbackCopy();
+            }
         });
         
        function showPublishModal(state, gameUrl, gameId, errorMsg) {
