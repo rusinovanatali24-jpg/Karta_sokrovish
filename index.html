@@ -611,6 +611,7 @@
                 <div style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                     <button class="btn btn-primary" id="previewBtn">▶️ Запустить игру</button>
                     <button class="btn btn-success" id="publishBtn" style="background: linear-gradient(135deg, #f093fb, #f5576c);">📋 Копировать код для Genially</button>
+                    <button class="btn btn-success" id="downloadBtn" style="background: linear-gradient(135deg, #56ab2f, #a8e063);">⬇️ Скачать игру</button>
                     <span id="copySuccessMsg" style="display:none; color: #28a745; font-weight: bold; font-size: 1em;">✅ Код скопирован! Вставьте в HTML-элемент Genially (Ctrl+V)</span>
                 </div>
                 
@@ -1800,22 +1801,68 @@
         // ФУНКЦИЯ ПУБЛИКАЦИИ ИГРЫ НА RENDER
         // ========================================
         
+        // Общая функция генерации HTML игры
+        function buildGameHTML() {
+            applySettingsFromForm();
+            return generateGameHTML();
+        }
+
+        // Скачать игру как HTML-файл
+        function downloadGameFile(gameHTML, filename) {
+            var blob = new Blob([gameHTML], { type: 'text/html;charset=utf-8' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = filename || 'game.html';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+        }
+
+        // Кнопка «Скачать игру»
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            if (gameData.questions.length === 0) {
+                alert('❌ Сначала добавьте хотя бы один вопрос!');
+                return;
+            }
+            var btn = this;
+            btn.disabled = true;
+            btn.textContent = '⏳ Генерация...';
+            setTimeout(function() {
+                try {
+                    var gameHTML = buildGameHTML();
+                    var title = (gameData.title || 'game').replace(/[^a-zA-Zа-яА-Я0-9_-]/g, '_').slice(0, 40);
+                    downloadGameFile(gameHTML, title + '.html');
+                    btn.textContent = '✅ Файл скачан!';
+                    setTimeout(function() { btn.textContent = '⬇️ Скачать игру'; btn.disabled = false; }, 2500);
+                } catch(e) {
+                    alert('❌ Ошибка: ' + e.message);
+                    btn.textContent = '⬇️ Скачать игру';
+                    btn.disabled = false;
+                }
+            }, 50);
+        });
+
+        // Кнопка «Копировать код для Genially»
         document.getElementById('publishBtn').addEventListener('click', function() {
             if (gameData.questions.length === 0) {
                 alert('❌ Сначала добавьте хотя бы один вопрос!');
                 return;
             }
-            
-            applySettingsFromForm(); // берём актуальные значения из формы
+
             var btn = this;
             var successMsg = document.getElementById('copySuccessMsg');
-            
+
+            // Генерируем синхронно — clipboard API требует вызова в том же
+            // пользовательском жесте (без setTimeout и async-пауз)
+            applySettingsFromForm();
             var gameHTML = generateGameHTML();
             var iframeCode = '<iframe srcdoc="' + gameHTML.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" width="100%" style="border:none;border-radius:10px;aspect-ratio:16/9;" allowfullscreen></iframe>';
             document.getElementById('iframeCode').textContent = iframeCode;
-            
+
             function onCopied() {
-                btn.textContent = '✅ Готово! Код скопирован';
+                btn.textContent = '✅ Код скопирован!';
                 btn.style.background = 'linear-gradient(135deg, #56ab2f, #a8e063)';
                 btn.disabled = true;
                 if (successMsg) successMsg.style.display = 'inline';
@@ -1826,26 +1873,27 @@
                     if (successMsg) successMsg.style.display = 'none';
                 }, 3500);
             }
-            
+
             function fallbackCopy() {
                 var ta = document.createElement('textarea');
                 ta.value = iframeCode;
                 ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;width:1px;height:1px;';
                 document.body.appendChild(ta);
-                ta.focus();
-                ta.select();
-                try {
-                    var ok = document.execCommand('copy');
-                    if (ok) { onCopied(); }
-                    else { alert('❌ Не удалось скопировать. Нажмите Ctrl+C в поле ниже.'); }
-                } catch(e) {
-                    alert('❌ Не удалось скопировать автоматически. Нажмите Ctrl+C.');
-                }
+                ta.focus(); ta.select();
+                var ok = false;
+                try { ok = document.execCommand('copy'); } catch(e) {}
                 document.body.removeChild(ta);
+                if (ok) { onCopied(); }
+                else { alert('❌ Не удалось скопировать.\nВыберите текст в поле ниже и нажмите Ctrl+C.'); }
             }
-            
+
+            // ClipboardItem + Blob — самый надёжный способ на HTTPS
             try {
-                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                if (navigator.clipboard && window.ClipboardItem) {
+                    var blob = new Blob([iframeCode], { type: 'text/plain' });
+                    navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })])
+                        .then(onCopied).catch(fallbackCopy);
+                } else if (navigator.clipboard) {
                     navigator.clipboard.writeText(iframeCode).then(onCopied).catch(fallbackCopy);
                 } else {
                     fallbackCopy();
