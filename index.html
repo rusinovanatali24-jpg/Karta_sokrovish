@@ -411,8 +411,12 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>💡 Количество доступных подсказок</label>
+                    <label>💡 Количество подсказок на всю игру</label>
                     <input type="number" id="hints" value="3" min="0" max="10">
+                    <div style="margin-top: 6px; font-size: 0.88em; color: #888; line-height: 1.4;">
+                        Это общий лимит подсказок на всю игру. При значении 3 игрок может нажать «Показать подсказку» суммарно 3 раза на все вопросы.<br>
+                        Кнопка подсказки появляется только если: (1) лимит &gt; 0 и (2) к вопросу добавлен текст подсказки во вкладке «Вопросы».
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -1099,8 +1103,8 @@
                 }
                 
                 html += '<div class="form-group">';
-                html += '<label>💡 Подсказка (необязательно):</label>';
-                html += '<input type="text" value="' + q.hint + '" onchange="updateQuestionHint(' + q.id + ', this.value)" placeholder="Подсказка для игрока...">';
+                html += '<label>💡 Подсказка к этому вопросу (необязательно):</label>';
+                html += '<input type="text" value="' + q.hint + '" onchange="updateQuestionHint(' + q.id + ', this.value)" placeholder="Текст подсказки... (появится кнопка в игре, если лимит подсказок > 0)">';
                 html += '</div>';
                 
                 html += '</div>';
@@ -1341,6 +1345,8 @@
                 if (!gameData.customColor2) gameData.customColor2 = '#764ba2';
                 if (typeof gameData.neonEffect === 'undefined') gameData.neonEffect = false;
                 
+                document.getElementById('gameTitle').value = gameData.title || 'Охота за сокровищами';
+                document.getElementById('gameHeaderTitle').textContent = '🗺️ Редактор игры "' + (gameData.title || 'Охота за сокровищами') + '" 💎';
                 document.getElementById('attempts').value = gameData.attempts;
                 document.getElementById('timer').value = gameData.timer;
                 document.getElementById('points').value = gameData.points;
@@ -1391,6 +1397,18 @@
                     if (previewBlock && previewImg && gameData.customMapUrl.startsWith('data:')) {
                         previewImg.src = gameData.customMapUrl;
                         previewBlock.style.display = 'block';
+                    }
+                }
+                
+                // Восстанавливаем иконку маркера в UI
+                if (gameData.mapIcon && gameData.mapIconType) {
+                    var preview = document.getElementById('iconPreview');
+                    if (preview) {
+                        if (gameData.mapIconType === 'image') {
+                            preview.innerHTML = '<img src="' + gameData.mapIcon + '" style="width:50px;height:50px;object-fit:contain;">';
+                        } else {
+                            preview.textContent = gameData.mapIcon;
+                        }
                     }
                 }
             } catch (e) {
@@ -1556,7 +1574,7 @@
             html += 'function showQuestion(q){var html="<div class=modal-header>"+t("question")+" "+(currentPoint+1)+" "+t("of")+" "+data.questions.length+"</div>";html+="<div class=question-text>"+q.text+"</div>";if(q.questionImageUrl){html+="<div style=\\"text-align:center;margin:10px 0\\"><img src=\\""+q.questionImageUrl+"\\" style=\\"max-width:100%;max-height:220px;border-radius:10px;border:2px solid #ddd;object-fit:contain\\"></div>";}if(q.type==="noAnswer"){html+="<div class=modal-actions>";html+="<button class=btn onclick=\\"completePoint();closeModal()\\">"+t("understood")+"</button>";html+="</div>";}else{if(q.type==="text"){html+="<input type=text class=text-input id=textAnswer placeholder=\\""+t("enterAnswer")+"\\" autocomplete=\\"off\\">";}else if(q.type==="order"){html+="<div id=orderContainer class=order-container></div>";}else{html+="<div id=answersContainer>";q.answers.forEach(function(a,i){html+="<div class=answer-option onclick=selectAnswer("+i+") style=\\"display:flex;align-items:center;gap:10px\\">";if(a.imageUrl){html+="<img src=\\""+a.imageUrl+"\\" style=\\"max-width:120px;max-height:90px;object-fit:contain;border-radius:6px;flex-shrink:0\\">";}html+=a.text+"</div>";});html+="</div>";}html+="<div class=modal-actions>";if(q.hint&&hintsUsed<data.hints){html+="<div class=hint-box id=hintBox><strong>"+t("hint")+":</strong> "+q.hint+"</div>";html+="<button class=btn onclick=showHint()>"+t("showHint")+" ("+(data.hints-hintsUsed)+")</button>";}html+="<button class=btn onclick=checkAnswer()>"+t("check")+"</button>";html+="<div class=feedback id=feedback></div>";html+="</div>";}var _mc=document.getElementById("modalContent");_mc.innerHTML=html;if(q.type==="order"){initOrderQuestion(q);}document.getElementById("modal").classList.add("show");if(data.timer>0){startTimer(data.timer);}if(window.MathJax&&MathJax.typesetPromise){if(MathJax.typesetClear)MathJax.typesetClear([_mc]);MathJax.typesetPromise([_mc]).catch(function(e){console.log(e);});}}';
             
             html += 'function initOrderQuestion(q){orderItems=q.answers.map(function(a,i){return{text:a.text,imageUrl:a.imageUrl,origIndex:i};});for(var i=orderItems.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=orderItems[i];orderItems[i]=orderItems[j];orderItems[j]=tmp;}renderOrderItems();}';
-            html += 'function renderOrderItems(){var html="";orderItems.forEach(function(item,idx){html+="<div class=order-item onpointerdown=orderPointerDown("+idx+",event)>";html+="<span class=order-num>"+(idx+1)+"</span>";if(item.imageUrl){html+="<img class=order-img src=\\""+item.imageUrl+"\\">";}html+="<span class=order-text>"+item.text+"</span>";html+="<span class=order-handle>⠿⠿</span>";html+="</div>";});var c=document.getElementById("orderContainer");if(c){c.innerHTML=html;}}';
+            html += 'function renderOrderItems(){var html="";orderItems.forEach(function(item,idx){html+="<div class=order-item onpointerdown=orderPointerDown("+idx+",event)>";html+="<span class=order-num>"+(idx+1)+"</span>";if(item.imageUrl){html+="<img class=order-img src=\\""+item.imageUrl+"\\">";}html+="<span class=order-text>"+item.text+"</span>";html+="<span class=order-handle>⠿⠿</span>";html+="</div>";});var c=document.getElementById("orderContainer");if(c){c.innerHTML=html;if(window.MathJax&&MathJax.typesetPromise){if(MathJax.typesetClear)MathJax.typesetClear([c]);MathJax.typesetPromise([c]).catch(function(e){console.log(e);});}}}';
             html += 'function orderPointerDown(idx,e){e.preventDefault();var c=document.getElementById("orderContainer");var el=c.children[idx];if(!el)return;orderDrag={fromIndex:idx,startY:e.clientY};el.classList.add("order-dragging");document.addEventListener("pointermove",orderPointerMove);document.addEventListener("pointerup",orderPointerUp);}';
             html += 'function orderPointerMove(e){if(!orderDrag)return;var c=document.getElementById("orderContainer");if(!c)return;var el=c.children[orderDrag.fromIndex];if(!el)return;var deltaY=e.clientY-orderDrag.startY;el.style.transform="translateY("+deltaY+"px)";var children=c.children;var newIndex=orderDrag.fromIndex;for(var i=0;i<children.length;i++){if(i===orderDrag.fromIndex)continue;var r=children[i].getBoundingClientRect();var mid=r.top+r.height/2;if(i<orderDrag.fromIndex&&e.clientY<mid)newIndex=i;if(i>orderDrag.fromIndex&&e.clientY>mid)newIndex=i;}if(newIndex!==orderDrag.fromIndex){var moved=orderItems.splice(orderDrag.fromIndex,1)[0];orderItems.splice(newIndex,0,moved);orderDrag.fromIndex=newIndex;orderDrag.startY=e.clientY;renderOrderItems();var newEl=c.children[newIndex];if(newEl)newEl.classList.add("order-dragging");}}';
             html += 'function orderPointerUp(e){if(!orderDrag)return;document.removeEventListener("pointermove",orderPointerMove);document.removeEventListener("pointerup",orderPointerUp);orderDrag=null;renderOrderItems();}';
@@ -1564,7 +1582,7 @@
             
             html += 'function showHint(){clickSound();document.getElementById("hintBox").classList.add("show");hintsUsed++;}';
             
-            html += 'function checkAnswer(){stopTimer();clickSound();attempts++;var q=data.questions[currentPoint];var isCorrect=false;var feedback=document.getElementById("feedback");var isLastAttempt=attempts>=data.attempts;if(q.type==="text"){var userText=document.getElementById("textAnswer").value.trim().toLowerCase();var correctText=(q.correctText||"").trim().toLowerCase();isCorrect=userText===correctText;if(isCorrect){correctSound();score+=data.points;feedback.className="feedback correct";feedback.textContent=t("correct")+data.points+t("points");document.getElementById("textAnswer").disabled=true;setTimeout(function(){completePoint();closeModal();},1500);}else if(isLastAttempt){wrongSound();document.getElementById("textAnswer").disabled=true;if(data.showAnswer){var existing=document.querySelector(".correct-text-hint");if(!existing){var hint=document.createElement("div");hint.className="correct-text-hint";hint.style.cssText="margin-top:10px;padding:10px 14px;background:#d4edda;border:2px solid #28a745;border-radius:8px;color:#155724;font-weight:bold;font-size:1em;";hint.innerHTML="✅ Правильный ответ: <u>"+q.correctText+"</u>";var inp=document.getElementById("textAnswer");if(inp)inp.parentNode.insertBefore(hint,inp.nextSibling);}}var sec=5;feedback.className="feedback wrong";feedback.textContent=t("noAttempts")+" ("+sec+")";var timer=setInterval(function(){sec--;if(sec<=0){clearInterval(timer);completePoint();closeModal();}else{var fb=document.getElementById("feedback");if(fb)fb.textContent=t("noAttempts")+" ("+sec+")";}},1000);}else{wrongSound();feedback.className="feedback wrong";feedback.textContent=t("wrong")+(data.attempts-attempts);if(data.timer>0){startTimer(data.timer);}}}else if(q.type==="order"){isCorrect=orderItems.every(function(item,idx){return item.origIndex===idx;});var oc=document.getElementById("orderContainer");var items=oc?oc.querySelectorAll(".order-item"):[];if(isCorrect){correctSound();score+=data.points;items.forEach(function(el){el.classList.add("order-correct");el.onpointerdown=null;});feedback.className="feedback correct";feedback.textContent=t("correct")+data.points+t("points");setTimeout(function(){completePoint();closeModal();},1500);}else if(isLastAttempt){wrongSound();items.forEach(function(el){el.classList.add("order-wrong");el.onpointerdown=null;});if(data.showAnswer){orderItems.sort(function(a,b){return a.origIndex-b.origIndex;});renderOrderItems();var fixedItems=oc?oc.querySelectorAll(".order-item"):[];fixedItems.forEach(function(el){el.classList.add("order-correct");el.onpointerdown=null;});}var sec3=5;feedback.className="feedback wrong";feedback.textContent=t("noAttempts")+" ("+sec3+")";var timer3=setInterval(function(){sec3--;if(sec3<=0){clearInterval(timer3);completePoint();closeModal();}else{var fb3=document.getElementById("feedback");if(fb3)fb3.textContent=t("noAttempts")+" ("+sec3+")";}},1000);}else{wrongSound();items.forEach(function(el){el.classList.add("order-wrong");});feedback.className="feedback wrong";feedback.textContent=t("wrong")+(data.attempts-attempts);setTimeout(function(){items.forEach(function(el){el.classList.remove("order-wrong");el.style.transform="";});feedback.textContent="";feedback.className="feedback";if(data.timer>0){startTimer(data.timer);}},1000);}}else{if(selected.length===0){wrongSound();alert(t("selectAnswer"));attempts--;return;}var correct=[];q.answers.forEach(function(a,i){if(a.correct)correct.push(i);});isCorrect=selected.length===correct.length&&selected.every(function(s){return correct.indexOf(s)!==-1;});var opts=document.querySelectorAll(".answer-option");if(isCorrect){correctSound();score+=data.points;selected.forEach(function(i){opts[i].classList.add("correct");});opts.forEach(function(o){o.style.pointerEvents="none";});feedback.className="feedback correct";feedback.textContent=t("correct")+data.points+t("points");setTimeout(function(){completePoint();closeModal();},1500);}else if(isLastAttempt){wrongSound();selected.forEach(function(i){opts[i].classList.add("wrong");});if(data.showAnswer){correct.forEach(function(i){opts[i].classList.add("correct");});}opts.forEach(function(o){o.style.pointerEvents="none";});var sec2=5;feedback.className="feedback wrong";feedback.textContent=t("noAttempts")+" ("+sec2+")";var timer2=setInterval(function(){sec2--;if(sec2<=0){clearInterval(timer2);completePoint();closeModal();}else{var fb2=document.getElementById("feedback");if(fb2)fb2.textContent=t("noAttempts")+" ("+sec2+")";}},1000);}else{wrongSound();selected.forEach(function(i){opts[i].classList.add("wrong");});feedback.className="feedback wrong";feedback.textContent=t("wrong")+(data.attempts-attempts);setTimeout(function(){opts.forEach(function(o){o.classList.remove("wrong","correct");o.style.pointerEvents="auto";});selected=[];feedback.textContent="";feedback.className="feedback";if(data.timer>0){startTimer(data.timer);}},1000);}}}';
+            html += 'function checkAnswer(){stopTimer();clickSound();attempts++;var q=data.questions[currentPoint];var isCorrect=false;var feedback=document.getElementById("feedback");var isLastAttempt=attempts>=data.attempts;if(q.type==="text"){var userText=document.getElementById("textAnswer").value.trim().toLowerCase();var correctText=(q.correctText||"").trim().toLowerCase();isCorrect=userText===correctText;if(isCorrect){correctSound();score+=data.points;feedback.className="feedback correct";feedback.textContent=t("correct")+data.points+t("points");document.getElementById("textAnswer").disabled=true;setTimeout(function(){completePoint();closeModal();},1500);}else if(isLastAttempt){wrongSound();document.getElementById("textAnswer").disabled=true;if(data.showAnswer){var existing=document.querySelector(".correct-text-hint");if(!existing){var hint=document.createElement("div");hint.className="correct-text-hint";hint.style.cssText="margin-top:10px;padding:10px 14px;background:#d4edda;border:2px solid #28a745;border-radius:8px;color:#155724;font-weight:bold;font-size:1em;";hint.innerHTML="✅ Правильный ответ: <u>"+q.correctText+"</u>";var inp=document.getElementById("textAnswer");if(inp)inp.parentNode.insertBefore(hint,inp.nextSibling);}}var sec=5;feedback.className="feedback wrong";feedback.textContent=t("noAttempts")+" ("+sec+")";var timer=setInterval(function(){sec--;if(sec<=0){clearInterval(timer);completePoint();closeModal();}else{var fb=document.getElementById("feedback");if(fb)fb.textContent=t("noAttempts")+" ("+sec+")";}},1000);}else{wrongSound();feedback.className="feedback wrong";feedback.textContent=t("wrong")+(data.attempts-attempts);if(data.timer>0){startTimer(data.timer);}}}else if(q.type==="order"){isCorrect=orderItems.every(function(item,idx){return item.origIndex===idx;});var oc=document.getElementById("orderContainer");var items=oc?oc.querySelectorAll(".order-item"):[];if(isCorrect){correctSound();score+=data.points;items.forEach(function(el){el.classList.add("order-correct");el.onpointerdown=null;});feedback.className="feedback correct";feedback.textContent=t("correct")+data.points+t("points");setTimeout(function(){completePoint();closeModal();},1500);}else if(isLastAttempt){wrongSound();items.forEach(function(el){el.classList.add("order-wrong");el.onpointerdown=null;});if(data.showAnswer){orderItems.sort(function(a,b){return a.origIndex-b.origIndex;});renderOrderItems();var fixedItems=oc?oc.querySelectorAll(".order-item"):[];fixedItems.forEach(function(el){el.classList.add("order-correct");el.onpointerdown=null;});}var sec3=5;feedback.className="feedback wrong";feedback.textContent=t("noAttempts")+" ("+sec3+")";var timer3=setInterval(function(){sec3--;if(sec3<=0){clearInterval(timer3);completePoint();closeModal();}else{var fb3=document.getElementById("feedback");if(fb3)fb3.textContent=t("noAttempts")+" ("+sec3+")";}},1000);}else{wrongSound();items.forEach(function(el){el.classList.add("order-wrong");});feedback.className="feedback wrong";feedback.textContent=t("wrong")+(data.attempts-attempts);setTimeout(function(){items.forEach(function(el){el.classList.remove("order-wrong");el.style.transform="";});feedback.textContent="";feedback.className="feedback";if(data.timer>0){startTimer(data.timer);}},1000);}}else{if(selected.length===0){wrongSound();alert(t("selectAnswer"));attempts--;return;}var correct=[];q.answers.forEach(function(a,i){if(a.correct)correct.push(i);});isCorrect=selected.length===correct.length&&selected.every(function(s){return correct.indexOf(s)!==-1;});var opts=document.querySelectorAll(".answer-option");if(isCorrect){correctSound();score+=data.points;selected.forEach(function(i){opts[i].classList.add("correct");});opts.forEach(function(o){o.style.pointerEvents="none";});feedback.className="feedback correct";feedback.textContent=t("correct")+data.points+t("points");setTimeout(function(){completePoint();closeModal();},1500);}else if(isLastAttempt){wrongSound();selected.forEach(function(i){opts[i].classList.add("wrong");});if(data.showAnswer){correct.forEach(function(i){opts[i].classList.add("correct");});}opts.forEach(function(o){o.style.pointerEvents="none";});var sec2=5;feedback.className="feedback wrong";feedback.textContent=t("noAttempts")+" ("+sec2+")";var timer2=setInterval(function(){sec2--;if(sec2<=0){clearInterval(timer2);completePoint();closeModal();}else{var fb2=document.getElementById("feedback");if(fb2)fb2.textContent=t("noAttempts")+" ("+sec2+")";}},1000);}else{wrongSound();selected.forEach(function(i){opts[i].classList.add("wrong");});feedback.className="feedback wrong";feedback.textContent=t("wrong")+(data.attempts-attempts);setTimeout(function(){opts.forEach(function(o){o.classList.remove("wrong","correct","selected");o.style.pointerEvents="auto";});selected=[];feedback.textContent="";feedback.className="feedback";if(data.timer>0){startTimer(data.timer);}},1000);}}}';
             
             html += 'function completePoint(){var points=document.querySelectorAll(".map-point");points[currentPoint].classList.remove("active");points[currentPoint].classList.add("completed");points[currentPoint].querySelector(".point-label").classList.add("completed");currentPoint++;updateProgress();if(currentPoint<data.questions.length){points[currentPoint].classList.remove("locked");points[currentPoint].classList.add("active");}else{showFinal();}}';
             
@@ -1700,6 +1718,7 @@
                     question.questionImageUrl = '';
                 }
                 renderQuestions();
+                saveToLocalStorage();
             }
         };
         
@@ -1707,6 +1726,7 @@
             var question = gameData.questions.find(function(q) { return q.id === questionId; });
             if (question) {
                 question.questionImageUrl = url;
+                saveToLocalStorage();
             }
         };
         
@@ -1717,6 +1737,7 @@
                     if (question) {
                         question.questionImageUrl = dataUrl;
                         renderQuestions();
+                        saveToLocalStorage();
                         showCompressToast(originalLen, compressedLen);
                     }
                 });
@@ -1734,6 +1755,7 @@
                         answer.imageUrl = '';
                     }
                     renderQuestions();
+                    saveToLocalStorage();
                 }
             }
         };
@@ -1744,6 +1766,7 @@
                 var answer = question.answers.find(function(a) { return a.id === answerId; });
                 if (answer) {
                     answer.imageUrl = url;
+                    saveToLocalStorage();
                 }
             }
         };
